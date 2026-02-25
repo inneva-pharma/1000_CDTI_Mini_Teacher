@@ -18,7 +18,7 @@ import { Award, X, BookOpen, GraduationCap, Zap, HelpCircle } from "lucide-react
 import { WifiLoadingScreen } from "./WifiLoadingScreen";
 import { QuestionReviewScreen, type ReviewQuestion } from "./QuestionReviewScreen";
 
-const N8N_WEBHOOK_BASE = "https://developerinneva.app.n8n.cloud/webhook/f3f514ca-c651-400e-be68-befd878d2025/unity/reto";
+// n8n proxy via Edge Function
 
 const DIFFICULTIES = [
   { value: "Fácil", color: "bg-green-500" },
@@ -127,17 +127,10 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
       const gradeName = grades.find((g) => g.id === parseInt(gradeId))?.name ?? "";
       const subjectName = subjects.find((s) => s.id === parseInt(subjectId))?.name ?? "";
 
-      // 2. Call n8n webhook
-      const session = await supabase.auth.getSession();
-      const token = session.data.session?.access_token;
-
-      const response = await fetch(`${N8N_WEBHOOK_BASE}/generar`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      // 2. Call n8n via Edge Function proxy
+      const { data: n8nResult, error: fnError } = await supabase.functions.invoke("n8n-proxy", {
+        body: {
+          accion: "generar",
           challenge_id: challenge.id,
           user_id: user.id,
           name: name.trim(),
@@ -148,12 +141,11 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
           language,
           questionCount,
           difficulty,
-        }),
+        },
       });
 
-      if (!response.ok) throw new Error(`Error del servidor: ${response.status}`);
+      if (fnError) throw new Error(fnError.message || "Error al conectar con el generador");
 
-      const n8nResult = await response.json();
       const preguntas: any[] = n8nResult?.preguntas ?? [];
 
       if (preguntas.length === 0) {
