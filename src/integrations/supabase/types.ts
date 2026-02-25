@@ -329,6 +329,8 @@ export type Database = {
           allowAppAccess: number
           allowUserRememberAccess: number
           currentDatabaseVersion: number
+          expireTokenTime: number
+          expireTokenUseTime: number
           id: number
           lastSupportedAppVersion: number
           loginWithDoubleAuthen: number
@@ -337,6 +339,8 @@ export type Database = {
           allowAppAccess?: number
           allowUserRememberAccess?: number
           currentDatabaseVersion?: number
+          expireTokenTime?: number
+          expireTokenUseTime?: number
           id?: number
           lastSupportedAppVersion?: number
           loginWithDoubleAuthen?: number
@@ -345,6 +349,8 @@ export type Database = {
           allowAppAccess?: number
           allowUserRememberAccess?: number
           currentDatabaseVersion?: number
+          expireTokenTime?: number
+          expireTokenUseTime?: number
           id?: number
           lastSupportedAppVersion?: number
           loginWithDoubleAuthen?: number
@@ -475,6 +481,47 @@ export type Database = {
             columns: ["schools_id"]
             isOneToOne: false
             referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      registers: {
+        Row: {
+          createDate: string
+          id: number
+          info1: string | null
+          info2: string | null
+          ip: string
+          sqlQuestionName: string
+          token: string | null
+          users_id: string | null
+        }
+        Insert: {
+          createDate?: string
+          id?: number
+          info1?: string | null
+          info2?: string | null
+          ip?: string
+          sqlQuestionName?: string
+          token?: string | null
+          users_id?: string | null
+        }
+        Update: {
+          createDate?: string
+          id?: number
+          info1?: string | null
+          info2?: string | null
+          ip?: string
+          sqlQuestionName?: string
+          token?: string | null
+          users_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registers_users_id_fkey"
+            columns: ["users_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
