@@ -14,8 +14,11 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Award, X, CheckCircle2, BookOpen, GraduationCap, Zap, HelpCircle } from "lucide-react";
+import { Award, X, BookOpen, GraduationCap, Zap, HelpCircle } from "lucide-react";
 import { WifiLoadingScreen } from "./WifiLoadingScreen";
+import { QuestionReviewScreen, type ReviewQuestion } from "./QuestionReviewScreen";
+
+const N8N_WEBHOOK_BASE = "https://developerinneva.app.n8n.cloud/webhook-test/01f1bbf5-de79-4f6e-845b-2d2a43b9b73a/unity/reto";
 
 const DIFFICULTIES = [
   { value: "Fácil", color: "bg-green-500" },
@@ -26,17 +29,7 @@ const DIFFICULTIES = [
 
 const LANGUAGES = ["Español", "English", "Français"];
 
-type Phase = "form" | "loading" | "result";
-
-interface GeneratedChallenge {
-  id: number;
-  name: string;
-  subject: string;
-  grade: string;
-  difficulty: string;
-  language: string;
-  questionCount: number;
-}
+type Phase = "form" | "loading" | "review";
 
 interface Props {
   open: boolean;
@@ -48,7 +41,9 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
   const { user } = useAuth();
   const [phase, setPhase] = useState<Phase>("form");
   const [animState, setAnimState] = useState<"closed" | "entering" | "open" | "leaving">("closed");
-  const [generatedChallenge, setGeneratedChallenge] = useState<GeneratedChallenge | null>(null);
+  const [generatedQuestions, setGeneratedQuestions] = useState<ReviewQuestion[]>([]);
+  const [challengeId, setChallengeId] = useState<number | null>(null);
+  const [savingQuestions, setSavingQuestions] = useState(false);
 
   const [name, setName] = useState("");
   const [topic, setTopic] = useState("");
@@ -94,11 +89,12 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
   const resetForm = () => {
     setName(""); setTopic(""); setGradeId(""); setSubjectId("");
     setLanguage("Español"); setQuestionCount(5); setDifficulty("Fácil");
-    setShareWithStudents(false); setPhase("form"); setGeneratedChallenge(null);
+    setShareWithStudents(false); setPhase("form"); setGeneratedQuestions([]);
+    setChallengeId(null); setSavingQuestions(false);
   };
 
   const handleClose = () => {
-    if (phase === "loading") return; // Can't close while generating
+    if (phase === "loading" || savingQuestions) return;
     resetForm();
     onOpenChange(false);
   };
@@ -113,7 +109,7 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
     setPhase("loading");
 
     try {
-      // 1. Insert challenge record to Supabase
+      // 1. Insert challenge record
       const accessPermissions = shareWithStudents ? 1 : 0;
       const { data: challenge, error } = await supabase
         .from("challenges")
@@ -126,85 +122,106 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
         .select().single();
       if (error) throw error;
 
+      setChallengeId(challenge.id);
+
       const gradeName = grades.find((g) => g.id === parseInt(gradeId))?.name ?? "";
       const subjectName = subjects.find((s) => s.id === parseInt(subjectId))?.name ?? "";
 
-      // 2. Call n8n and WAIT for response (not fire-and-forget)
-      const webhookUrl = import.meta.env.VITE_N8N_CHALLENGE_WEBHOOK;
-      let n8nResult: any = null;
+      // 2. Call n8n webhook
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
 
-      if (webhookUrl) {
-        const session = await supabase.auth.getSession();
-        const token = session.data.session?.access_token;
-
-        const response = await fetch(`${webhookUrl}/generar`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            challenge_id: challenge.id,
-            user_id: user.id,
-            name: name.trim(),
-            topic: topic.trim(),
-            grade: gradeName,
-            subject: subjectName,
-            subject_id: parseInt(subjectId),
-            language,
-            questionCount,
-            difficulty,
-          }),
-        });
-
-        if (!response.ok) {
-          console.warn("n8n returned non-OK status:", response.status);
-        } else {
-          n8nResult = await response.json();
-        }
-      }
-
-      // 3. Insert generated questions to Supabase
-      const preguntas: any[] = n8nResult?.preguntas ?? [];
-      if (preguntas.length > 0) {
-        const questionsToInsert = preguntas.map((p: any) => ({
+      const response = await fetch(`${N8N_WEBHOOK_BASE}/generar`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
           challenge_id: challenge.id,
-          question: p.pregunta,
-          answer1: p.opciones?.[0] ?? "",
-          answer2: p.opciones?.[1] ?? "",
-          answer3: p.opciones?.[2] ?? "",
-          answer4: p.opciones?.[3] ?? "",
-          correctAnswer: p.correctAnswerIndex ?? 0,
-          explanation: p.explanation || null,
-          isInvalidQuestion: false,
-        }));
+          user_id: user.id,
+          name: name.trim(),
+          topic: topic.trim(),
+          grade: gradeName,
+          subject: subjectName,
+          subject_id: parseInt(subjectId),
+          language,
+          questionCount,
+          difficulty,
+        }),
+      });
 
-        const { error: qError } = await supabase
-          .from("challenge_questions")
-          .insert(questionsToInsert);
+      if (!response.ok) throw new Error(`Error del servidor: ${response.status}`);
 
-        if (qError) {
-          console.warn("Error inserting questions:", qError);
-        }
+      const n8nResult = await response.json();
+      const preguntas: any[] = n8nResult?.preguntas ?? [];
+
+      if (preguntas.length === 0) {
+        toast.error("No se generaron preguntas. Intenta de nuevo.");
+        setPhase("form");
+        return;
       }
 
-      // 4. Show result screen
-      setGeneratedChallenge({
-        id: challenge.id,
-        name: name.trim(),
-        subject: subjectName,
-        grade: gradeName,
-        difficulty,
-        language,
-        questionCount: preguntas.length || questionCount,
-      });
-      setPhase("result");
-      onCreated(); // Refresh challenge list in background
+      // 3. Show review screen (don't save to DB yet)
+      setGeneratedQuestions(
+        preguntas.map((p: any) => ({
+          pregunta: p.pregunta ?? "",
+          opciones: [
+            p.opciones?.[0] ?? "",
+            p.opciones?.[1] ?? "",
+            p.opciones?.[2] ?? "",
+            p.opciones?.[3] ?? "",
+          ],
+          correctAnswerIndex: p.correctAnswerIndex ?? 0,
+        }))
+      );
+      setPhase("review");
 
     } catch (err: any) {
       console.error(err);
       setPhase("form");
       toast.error(err.message || "Error al crear el reto");
+    }
+  };
+
+  const handleSaveQuestions = async (editedQuestions: ReviewQuestion[]) => {
+    if (!challengeId) return;
+    setSavingQuestions(true);
+
+    try {
+      const questionsToInsert = editedQuestions.map((q) => ({
+        challenge_id: challengeId,
+        question: q.pregunta,
+        answer1: q.opciones[0] ?? "",
+        answer2: q.opciones[1] ?? "",
+        answer3: q.opciones[2] ?? "",
+        answer4: q.opciones[3] ?? "",
+        correctAnswer: q.correctAnswerIndex,
+        explanation: null,
+        isInvalidQuestion: false,
+      }));
+
+      const { error } = await supabase
+        .from("challenge_questions")
+        .insert(questionsToInsert);
+
+      if (error) throw error;
+
+      // Update question count
+      await supabase
+        .from("challenges")
+        .update({ questionCount: editedQuestions.length })
+        .eq("id", challengeId);
+
+      toast.success("¡Reto guardado con éxito!");
+      onCreated();
+      handleClose();
+
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || "Error al guardar las preguntas");
+    } finally {
+      setSavingQuestions(false);
     }
   };
 
@@ -250,8 +267,8 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
           </div>
           <div className="min-w-0 space-y-0.5">
             <h2 className="text-lg font-bold text-primary-foreground sm:text-xl md:text-2xl">
-              {phase === "result" ? (
-                <>Reto <span className="font-extrabold">generado</span></>
+              {phase === "review" ? (
+                <>Revisar <span className="font-extrabold">preguntas</span></>
               ) : (
                 <>Crear <span className="font-extrabold">nuevo reto</span></>
               )}
@@ -259,8 +276,8 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
             <p className="text-xs text-primary-foreground/60 sm:text-sm">
               {phase === "loading"
                 ? "La IA está preparando tu reto..."
-                : phase === "result"
-                ? "Tu reto educativo está listo"
+                : phase === "review"
+                ? "Revisa y edita las preguntas antes de guardar"
                 : "Configura los parámetros para generar un nuevo desafío educativo"}
             </p>
           </div>
@@ -278,54 +295,14 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
             />
           )}
 
-          {/* ── RESULT PHASE ── */}
-          {phase === "result" && generatedChallenge && (
-            <div className="flex flex-col items-center gap-6 px-6 py-8 text-center">
-              {/* Success icon */}
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-                <CheckCircle2 className="h-10 w-10 text-green-500" />
-              </div>
-
-              <div className="space-y-1">
-                <h3 className="text-xl font-bold text-primary">¡Reto creado con éxito!</h3>
-                <p className="text-sm text-muted-foreground">
-                  Se han generado{" "}
-                  <span className="font-bold text-primary">{generatedChallenge.questionCount} preguntas</span>{" "}
-                  listas para usar
-                </p>
-              </div>
-
-              {/* Details grid */}
-              <div className="grid w-full grid-cols-2 gap-3">
-                <div className="flex flex-col items-center gap-1.5 rounded-xl bg-muted/40 p-3">
-                  <BookOpen className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-[11px] text-muted-foreground">Asignatura</p>
-                  <p className="text-sm font-bold text-primary">{generatedChallenge.subject}</p>
-                </div>
-                <div className="flex flex-col items-center gap-1.5 rounded-xl bg-muted/40 p-3">
-                  <GraduationCap className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-[11px] text-muted-foreground">Curso</p>
-                  <p className="text-sm font-bold text-primary">{generatedChallenge.grade}</p>
-                </div>
-                <div className="flex flex-col items-center gap-1.5 rounded-xl bg-muted/40 p-3">
-                  <Zap className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-[11px] text-muted-foreground">Dificultad</p>
-                  <p className="text-sm font-bold text-primary">{generatedChallenge.difficulty}</p>
-                </div>
-                <div className="flex flex-col items-center gap-1.5 rounded-xl bg-muted/40 p-3">
-                  <HelpCircle className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-[11px] text-muted-foreground">Preguntas</p>
-                  <p className="text-sm font-bold text-primary">{generatedChallenge.questionCount}</p>
-                </div>
-              </div>
-
-              <Button
-                onClick={handleClose}
-                className="min-w-[160px] rounded-full border-2 border-cta bg-cta text-sm font-bold text-cta-foreground shadow-md transition-transform hover:scale-105 hover:bg-cta/90"
-              >
-                Cerrar
-              </Button>
-            </div>
+          {/* ── REVIEW PHASE ── */}
+          {phase === "review" && generatedQuestions.length > 0 && (
+            <QuestionReviewScreen
+              questions={generatedQuestions}
+              onSave={handleSaveQuestions}
+              onCancel={handleClose}
+              saving={savingQuestions}
+            />
           )}
 
           {/* ── FORM PHASE ── */}
