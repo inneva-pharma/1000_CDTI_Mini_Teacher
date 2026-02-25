@@ -1,14 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +14,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
-import { Award } from "lucide-react";
+import { Award, X } from "lucide-react";
 
 const DIFFICULTIES = [
   { value: "Fácil", color: "bg-green-500" },
@@ -41,6 +34,7 @@ interface Props {
 export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [animState, setAnimState] = useState<"closed" | "entering" | "open" | "leaving">("closed");
 
   const [name, setName] = useState("");
   const [topic, setTopic] = useState("");
@@ -50,6 +44,18 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
   const [questionCount, setQuestionCount] = useState(5);
   const [difficulty, setDifficulty] = useState("Fácil");
   const [shareWithStudents, setShareWithStudents] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setAnimState("entering");
+      const t = setTimeout(() => setAnimState("open"), 30);
+      return () => clearTimeout(t);
+    } else if (animState === "open" || animState === "entering") {
+      setAnimState("leaving");
+      const t = setTimeout(() => setAnimState("closed"), 400);
+      return () => clearTimeout(t);
+    }
+  }, [open]);
 
   const { data: grades = [] } = useQuery({
     queryKey: ["grades"],
@@ -78,6 +84,10 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
     setShareWithStudents(false);
   };
 
+  const handleClose = () => {
+    onOpenChange(false);
+  };
+
   const handleGenerate = async () => {
     if (!user) return;
     if (!name.trim() || !gradeId || !subjectId) {
@@ -87,7 +97,6 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
 
     setLoading(true);
     try {
-      // Step 1: Create challenge in DB
       const accessPermissions = shareWithStudents ? 1 : 0;
       const { data: challenge, error } = await supabase
         .from("challenges")
@@ -107,15 +116,12 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
 
       if (error) throw error;
 
-      // Step 2: Call n8n webhook to generate questions
-      // The webhook URL will be configured via env variable
       const webhookUrl = import.meta.env.VITE_N8N_CHALLENGE_WEBHOOK;
       if (webhookUrl) {
         try {
           const session = await supabase.auth.getSession();
           const token = session.data.session?.access_token;
-
-          const res = await fetch(`${webhookUrl}/generar`, {
+          await fetch(`${webhookUrl}/generar`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -133,15 +139,9 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
               difficulty,
             }),
           });
-
-          if (!res.ok) {
-            console.warn("n8n webhook returned non-OK status:", res.status);
-          }
         } catch (webhookErr) {
-          console.warn("Could not call n8n webhook (it may not be configured yet):", webhookErr);
+          console.warn("n8n webhook error:", webhookErr);
         }
-      } else {
-        console.info("VITE_N8N_CHALLENGE_WEBHOOK not configured — skipping AI generation");
       }
 
       toast.success("Reto creado correctamente");
@@ -156,34 +156,64 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
     }
   };
 
+  if (animState === "closed") return null;
+
+  const isVisible = animState === "open";
+  const isLeaving = animState === "leaving";
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl gap-0 overflow-hidden rounded-2xl border-none p-0">
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div
+        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
+          isVisible ? "opacity-100" : isLeaving ? "opacity-0" : "opacity-0"
+        }`}
+        onClick={handleClose}
+      />
+
+      {/* Dialog panel — slides from right, exits to left */}
+      <div
+        className={`relative z-10 mx-4 w-full max-w-2xl overflow-hidden rounded-2xl bg-card shadow-2xl transition-all duration-400 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+          isVisible
+            ? "translate-x-0 scale-100 opacity-100"
+            : isLeaving
+              ? "-translate-x-[30%] scale-95 opacity-0"
+              : "translate-x-[40%] scale-95 opacity-0"
+        }`}
+      >
+        {/* Close button */}
+        <button
+          onClick={handleClose}
+          className="absolute right-4 top-4 z-20 rounded-full p-1.5 text-primary-foreground/60 transition-colors hover:bg-primary-foreground/10 hover:text-primary-foreground"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
         {/* Dark header */}
         <div className="flex items-center gap-4 bg-primary px-8 py-6">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-cta">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-cta shadow-lg">
             <Award className="h-8 w-8 text-cta-foreground" />
           </div>
-          <DialogHeader className="flex-1 space-y-1">
-            <DialogTitle className="text-2xl font-bold text-primary-foreground">
+          <div className="space-y-1">
+            <h2 className="text-2xl font-bold text-primary-foreground">
               Crear <span className="font-extrabold">nuevo reto</span>
-            </DialogTitle>
-            <DialogDescription className="text-primary-foreground/70">
+            </h2>
+            <p className="text-sm text-primary-foreground/60">
               Configura los parámetros para generar un nuevo desafío educativo
-            </DialogDescription>
-          </DialogHeader>
+            </p>
+          </div>
         </div>
 
         {/* Form body */}
         <div className="space-y-5 px-8 py-6">
-          {/* Row 1 */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Row 1: Name + Topic */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="font-bold text-primary">Nombre del reto</Label>
               <Input
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="rounded-full bg-muted/60"
+                className="rounded-full border-none bg-muted/60 shadow-inner"
                 placeholder="Ej: Multiplicaciones"
               />
             </div>
@@ -192,25 +222,23 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
               <Input
                 value={topic}
                 onChange={(e) => setTopic(e.target.value)}
-                className="rounded-full bg-muted/60"
+                className="rounded-full border-none bg-muted/60 shadow-inner"
                 placeholder="Ej: Tablas del 1 al 5"
               />
             </div>
           </div>
 
-          {/* Row 2 */}
-          <div className="grid grid-cols-3 gap-4">
+          {/* Row 2: Grade + Subject + Language */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="space-y-1.5">
               <Label className="font-bold text-primary">Curso</Label>
               <Select value={gradeId} onValueChange={setGradeId}>
-                <SelectTrigger className="rounded-full bg-muted/60">
+                <SelectTrigger className="rounded-full border-none bg-muted/60 shadow-inner">
                   <SelectValue placeholder="Seleccionar" />
                 </SelectTrigger>
                 <SelectContent>
                   {grades.map((g) => (
-                    <SelectItem key={g.id} value={String(g.id)}>
-                      {g.name}
-                    </SelectItem>
+                    <SelectItem key={g.id} value={String(g.id)}>{g.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -218,14 +246,12 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
             <div className="space-y-1.5">
               <Label className="font-bold text-primary">Asignatura</Label>
               <Select value={subjectId} onValueChange={setSubjectId}>
-                <SelectTrigger className="rounded-full bg-muted/60">
+                <SelectTrigger className="rounded-full border-none bg-muted/60 shadow-inner">
                   <SelectValue placeholder="Seleccionar" />
                 </SelectTrigger>
                 <SelectContent>
                   {subjects.map((s) => (
-                    <SelectItem key={s.id} value={String(s.id)}>
-                      {s.name}
-                    </SelectItem>
+                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -233,22 +259,20 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
             <div className="space-y-1.5">
               <Label className="font-bold text-primary">Idioma</Label>
               <Select value={language} onValueChange={setLanguage}>
-                <SelectTrigger className="rounded-full bg-muted/60">
+                <SelectTrigger className="rounded-full border-none bg-muted/60 shadow-inner">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   {LANGUAGES.map((l) => (
-                    <SelectItem key={l} value={l}>
-                      {l}
-                    </SelectItem>
+                    <SelectItem key={l} value={l}>{l}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* Row 3 */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Row 3: Question count + Difficulty */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label className="font-bold text-primary">Número de preguntas</Label>
               <Input
@@ -257,25 +281,25 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
                 max={50}
                 value={questionCount}
                 onChange={(e) => setQuestionCount(parseInt(e.target.value) || 1)}
-                className="w-32 rounded-full bg-muted/60"
+                className="w-36 rounded-full border-none bg-muted/60 shadow-inner"
               />
             </div>
             <div className="space-y-1.5">
               <Label className="font-bold text-primary">Dificultad</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 {DIFFICULTIES.map((d) => (
                   <button
                     key={d.value}
                     type="button"
                     onClick={() => setDifficulty(d.value)}
-                    className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                    className={`flex items-center gap-1.5 rounded-full border px-3.5 py-2 text-sm transition-all duration-200 ${
                       difficulty === d.value
-                        ? "border-primary bg-primary/10 font-semibold text-primary"
-                        : "border-border bg-muted/40 text-muted-foreground"
+                        ? "border-primary bg-primary/10 font-bold text-primary shadow-sm"
+                        : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted"
                     }`}
                   >
                     {d.value}
-                    <span className={`h-3 w-3 rounded-full ${d.color}`} />
+                    <span className={`h-3.5 w-3.5 rounded-full ${d.color} shadow-sm`} />
                   </button>
                 ))}
               </div>
@@ -283,20 +307,20 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
           </div>
 
           {/* Share toggle */}
-          <div className="flex items-center justify-between rounded-xl border border-border bg-muted/30 p-4">
+          <div className="flex items-center justify-between rounded-2xl bg-muted/40 p-4">
             <div>
               <p className="font-bold text-primary">Compartir con compañeros</p>
-              <p className="text-sm text-muted-foreground">Permitir visibilidad entre alumnos</p>
+              <p className="text-xs text-muted-foreground">Permitir visibilidad entre alumnos</p>
             </div>
             <Switch checked={shareWithStudents} onCheckedChange={setShareWithStudents} />
           </div>
 
           {/* Actions */}
-          <div className="flex justify-center gap-4 pt-2">
+          <div className="flex justify-center gap-4 pt-1 pb-2">
             <Button
               variant="secondary"
-              className="min-w-[140px] rounded-full font-semibold"
-              onClick={() => onOpenChange(false)}
+              className="min-w-[140px] rounded-full font-semibold transition-transform hover:scale-105"
+              onClick={handleClose}
               disabled={loading}
             >
               Cancelar
@@ -304,13 +328,13 @@ export function CreateChallengeDialog({ open, onOpenChange, onCreated }: Props) 
             <Button
               onClick={handleGenerate}
               disabled={loading}
-              className="min-w-[160px] rounded-full bg-cta font-semibold text-cta-foreground hover:bg-cta/90"
+              className="min-w-[160px] rounded-full border-2 border-cta bg-cta font-bold text-cta-foreground shadow-md transition-transform hover:scale-105 hover:bg-cta/90"
             >
               {loading ? "Generando..." : "Generar reto"}
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }

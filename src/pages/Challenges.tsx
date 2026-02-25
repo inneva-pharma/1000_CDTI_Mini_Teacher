@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Search, ArrowLeft, Target } from "lucide-react";
+import { Plus, Search, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { CreateChallengeDialog } from "@/components/challenges/CreateChallengeDialog";
 import { ChallengeCard } from "@/components/challenges/ChallengeCard";
@@ -30,116 +30,136 @@ export default function Challenges() {
   });
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-5">
+      {/* Header row — back arrow left, buttons right */}
       <div className="flex items-center justify-between">
         <Link to="/dashboard">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" className="h-9 w-9">
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div className="flex gap-3">
-          <Button
-            onClick={() => setCreateOpen(true)}
-            className="gap-2 rounded-full bg-cta px-6 font-semibold text-cta-foreground hover:bg-cta/90"
-          >
-            Nuevo reto
-          </Button>
-          <Button variant="outline" className="gap-2 rounded-full px-6 font-semibold">
-            <Search className="h-4 w-4" />
-            Buscar reto
-          </Button>
+      </div>
+
+      {/* Hero banner with buttons overlaid */}
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary via-primary/80 to-secondary shadow-lg">
+        {/* Decorative confetti-like dots */}
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute left-[10%] top-[20%] h-2 w-2 rounded-full bg-cta" />
+          <div className="absolute left-[25%] top-[60%] h-1.5 w-1.5 rounded-full bg-primary-foreground" />
+          <div className="absolute left-[50%] top-[15%] h-2.5 w-2.5 rounded-full bg-cta" />
+          <div className="absolute left-[70%] top-[70%] h-1 w-1 rounded-full bg-primary-foreground" />
+          <div className="absolute left-[85%] top-[30%] h-2 w-2 rounded-full bg-cta" />
+        </div>
+
+        <div className="relative flex min-h-[180px] items-center justify-between px-8 py-6 md:min-h-[220px]">
+          {/* Robot mascot area */}
+          <div className="hidden flex-1 items-center justify-center md:flex">
+            <svg viewBox="0 0 100 100" className="h-32 w-32 text-primary-foreground/30" fill="currentColor">
+              <circle cx="50" cy="35" r="25" />
+              <rect x="30" y="55" width="40" height="30" rx="8" />
+              <circle cx="40" cy="32" r="5" fill="hsl(185, 90%, 55%)" />
+              <circle cx="60" cy="32" r="5" fill="hsl(185, 90%, 55%)" />
+              <text x="50" y="20" textAnchor="middle" fontSize="18" fill="hsl(var(--cta))">?</text>
+            </svg>
+          </div>
+
+          {/* Buttons stacked on right */}
+          <div className="ml-auto flex flex-col gap-3">
+            <Button
+              onClick={() => setCreateOpen(true)}
+              className="gap-2 rounded-full bg-cta px-8 py-3 text-base font-bold text-cta-foreground shadow-md transition-transform hover:scale-105 hover:bg-cta/90"
+            >
+              Nuevo reto
+            </Button>
+            <Button
+              variant="outline"
+              className="gap-2 rounded-full border-primary-foreground/30 bg-primary-foreground/10 px-8 py-3 text-base font-semibold text-primary-foreground backdrop-blur-sm transition-transform hover:scale-105 hover:bg-primary-foreground/20"
+            >
+              <Search className="h-4 w-4" />
+              Buscar reto
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Hero banner */}
-      <Card className="overflow-hidden border-none bg-gradient-to-r from-primary via-primary/90 to-secondary shadow-lg">
-        <CardContent className="flex items-center justify-between p-8">
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-primary-foreground">Retos</h1>
-            <p className="text-primary-foreground/80">
-              Estudia y aprende resolviendo divertidos retos
-            </p>
-          </div>
-          <div className="hidden md:block">
-            <div className="flex h-32 w-32 items-center justify-center rounded-2xl">
-              <Target className="h-20 w-20 text-cta" strokeWidth={1.2} />
+      {/* Middle row: Teacher challenges + Introduce ID side by side */}
+      <div className="grid gap-4 lg:grid-cols-[1fr_280px]">
+        {/* Teacher challenges */}
+        <Card className="border-border bg-card shadow-sm">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg text-foreground">
+                Retos de tu <span className="font-bold">profesor</span>
+              </h2>
+              <Button variant="default" size="sm" className="rounded-full px-5 text-xs font-semibold">
+                Ver todos
+              </Button>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="mt-8 flex min-h-[80px] items-center justify-center">
+              <p className="text-sm text-muted-foreground">No hay retos de profesor disponibles</p>
+            </div>
+          </CardContent>
+        </Card>
 
-      {/* Teacher challenges section (placeholder) */}
-      <Card className="border-border shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-foreground">
-              Retos de tu <span className="font-bold">profesor</span>
-            </h2>
-            <Button variant="default" size="sm" className="rounded-full px-5 text-sm font-semibold">
-              Ver todos
+        {/* Introduce ID */}
+        <Card className="border-border bg-card shadow-sm">
+          <CardContent className="flex flex-col items-center gap-2.5 p-5 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-xl font-bold text-primary-foreground">
+              #
+            </div>
+            <h3 className="text-base font-bold text-foreground">Introducir ID</h3>
+            <p className="text-xs text-muted-foreground leading-tight">
+              Si tienes un código específico de un profesor o compañero introdúcelo aquí
+            </p>
+            <input
+              type="text"
+              placeholder="#"
+              className="w-full rounded-full border border-input bg-muted/50 px-4 py-2 text-center text-sm outline-none transition-all focus:ring-2 focus:ring-cta"
+            />
+            <Button size="sm" className="rounded-full bg-cta px-6 text-sm font-semibold text-cta-foreground hover:bg-cta/90">
+              Aceptar
             </Button>
-          </div>
-          <div className="mt-6 flex min-h-[100px] items-center justify-center">
-            <p className="text-sm text-muted-foreground">No hay retos de profesor disponibles</p>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* My created challenges */}
-      <Card className="border-none bg-secondary/30 shadow-sm">
-        <CardContent className="p-6">
+      <Card className="overflow-hidden border-none bg-secondary/25 shadow-sm">
+        <CardContent className="p-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-foreground">
+            <h2 className="text-lg text-foreground">
               Retos <span className="font-bold italic">creados</span>
             </h2>
-            <Button variant="default" size="sm" className="rounded-full px-5 text-sm font-semibold">
+            <Button variant="default" size="sm" className="rounded-full px-5 text-xs font-semibold">
               Ver todos
             </Button>
           </div>
 
           {myChallenges.length === 0 ? (
-            <div className="mt-6 flex min-h-[120px] items-center justify-center">
-              <p className="text-sm text-muted-foreground">
-                Aún no has creado ningún reto
-              </p>
+            <div className="mt-6 flex min-h-[100px] items-center justify-center">
+              <p className="text-sm text-muted-foreground">Aún no has creado ningún reto</p>
             </div>
           ) : (
             <div className="mt-4 flex gap-4 overflow-x-auto pb-2">
-              {myChallenges.map((ch) => (
-                <ChallengeCard key={ch.id} challenge={ch} />
+              {myChallenges.map((ch, i) => (
+                <div
+                  key={ch.id}
+                  className="animate-fade-in"
+                  style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}
+                >
+                  <ChallengeCard challenge={ch} />
+                </div>
               ))}
               {/* Create new card */}
               <button
                 onClick={() => setCreateOpen(true)}
-                className="flex min-w-[160px] shrink-0 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-secondary/50 bg-card p-6 text-muted-foreground transition-colors hover:border-cta hover:text-cta"
+                className="flex min-w-[150px] shrink-0 flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-secondary/40 bg-card/60 p-5 text-muted-foreground transition-all hover:scale-105 hover:border-cta hover:text-cta"
               >
                 <Plus className="h-10 w-10" />
-                <span className="text-sm font-semibold">Crear nuevo reto</span>
+                <span className="text-xs font-semibold">Crear nuevo reto</span>
               </button>
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Introduce ID card */}
-      <Card className="border-border shadow-sm">
-        <CardContent className="flex flex-col items-center gap-3 p-6 text-center">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary text-2xl font-bold text-primary-foreground">
-            #
-          </div>
-          <h3 className="text-lg font-bold text-foreground">Introducir ID</h3>
-          <p className="text-sm text-muted-foreground">
-            Si tienes un código específico de un profesor o compañero introdúcelo aquí
-          </p>
-          <input
-            type="text"
-            placeholder="#"
-            className="w-40 rounded-full border border-input bg-muted/50 px-4 py-2 text-center text-sm outline-none focus:ring-2 focus:ring-cta"
-          />
-          <Button className="rounded-full bg-cta px-6 font-semibold text-cta-foreground hover:bg-cta/90">
-            Aceptar
-          </Button>
         </CardContent>
       </Card>
 
