@@ -13,18 +13,13 @@ import {
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { GraduationCap } from "lucide-react";
 
 const navItems = [
   { title: "Inicio", url: "/dashboard", icon: Home },
-  { title: "Tutor IA", url: "/chatbots", icon: Bot },
-  { title: "Retos", url: "/challenges", icon: Target },
+  { title: "Mi conocimiento", url: "/knowledge", icon: BookOpen },
   { title: "Explorar", url: "/explore", icon: Search },
-  { title: "Conocimiento", url: "/knowledge", icon: BookOpen },
-];
-
-const bottomItems = [
-  { title: "Ajustes", url: "/settings", icon: Settings },
+  { title: "Miniteachers", url: "/chatbots", icon: Bot },
+  { title: "Retos", url: "/challenges", icon: Target },
 ];
 
 export function AppSidebar() {
@@ -32,15 +27,24 @@ export function AppSidebar() {
   const { profile } = useAuth();
   const isAdmin = profile && profile.role_id <= 2;
 
+  const initials = profile
+    ? ((profile.name?.[0] ?? "") + (profile.lastname?.[0] ?? "")).toUpperCase() || (profile.nick?.[0]?.toUpperCase() ?? "U")
+    : "U";
+
+  const displayName = profile
+    ? [profile.name, profile.lastname].filter(Boolean).join(" ") || profile.nick || "Usuario"
+    : "Usuario";
+
   return (
     <Sidebar>
-      <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sidebar-primary">
-            <GraduationCap className="h-5 w-5 text-sidebar-primary-foreground" />
+      <SidebarHeader className="items-center px-4 pb-2 pt-4">
+        {/* Orange avatar ring like reference */}
+        <div className="flex h-20 w-20 items-center justify-center rounded-full border-[3px] border-cta">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-muted text-lg font-bold text-primary">
+            {initials}
           </div>
-          <span className="text-lg font-bold text-sidebar-foreground">MiniTeacher</span>
         </div>
+        <p className="mt-1 text-sm font-semibold text-primary">{displayName}</p>
       </SidebarHeader>
 
       <SidebarContent>
@@ -55,8 +59,8 @@ export function AppSidebar() {
                     tooltip={item.title}
                   >
                     <NavLink to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <item.icon className="h-5 w-5" />
+                      <span className="font-medium">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -69,8 +73,8 @@ export function AppSidebar() {
                     tooltip="Admin"
                   >
                     <NavLink to="/admin">
-                      <Shield className="h-4 w-4" />
-                      <span>Admin</span>
+                      <Shield className="h-5 w-5" />
+                      <span className="font-medium">Admin</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -84,20 +88,18 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {bottomItems.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname.startsWith(item.url)}
-                    tooltip={item.title}
-                  >
-                    <NavLink to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location.pathname.startsWith("/settings")}
+                  tooltip="Configuración"
+                >
+                  <NavLink to="/settings">
+                    <Settings className="h-5 w-5" />
+                    <span className="font-medium">Configuración</span>
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

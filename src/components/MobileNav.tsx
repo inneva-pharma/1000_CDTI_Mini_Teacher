@@ -20,7 +20,7 @@ export function MobileNav() {
     : items;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t bg-card md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-border bg-card md:hidden">
       {allItems.map((item) => {
         const active = location.pathname.startsWith(item.url);
         return (
@@ -28,8 +28,8 @@ export function MobileNav() {
             key={item.url}
             to={item.url}
             className={cn(
-              "flex flex-col items-center gap-1 text-xs",
-              active ? "text-secondary" : "text-muted-foreground"
+              "flex flex-col items-center gap-1 text-xs transition-colors",
+              active ? "text-cta" : "text-muted-foreground"
             )}
           >
             <item.icon className="h-5 w-5" />
