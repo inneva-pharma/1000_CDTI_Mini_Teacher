@@ -4,23 +4,23 @@
 
 @layer base {
   :root {
-    /* MiniTeacher Design System */
-    --background: 200 18% 93%;        /* #EBF0F2 */
-    --foreground: 216 100% 15%;       /* #00204F */
+    /* MiniTeacher Design System — matches reference UI */
+    --background: 210 20% 93%;        /* #EBF0F2 light gray bg */
+    --foreground: 216 100% 15%;       /* #00204F dark navy */
 
-    --card: 0 0% 100%;                /* #FFFFFF */
+    --card: 0 0% 100%;                /* white */
     --card-foreground: 216 100% 15%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 216 100% 15%;
 
-    --primary: 216 100% 15%;          /* #00204F */
+    --primary: 216 100% 15%;          /* #00204F dark navy */
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 216 35% 60%;         /* #7191C2 */
+    --secondary: 216 35% 60%;         /* #7191C2 accent blue */
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 20% 90%;
+    --muted: 210 15% 92%;
     --muted-foreground: 0 0% 35%;     /* #5A5A5A */
 
     --accent: 216 35% 60%;            /* #7191C2 */
@@ -29,24 +29,32 @@
     --destructive: 0 72% 51%;         /* #E53E3E */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 216 30% 85%;            /* #D4DCE8 */
-    --input: 216 30% 85%;
-    --ring: 216 35% 60%;
+    --border: 216 20% 87%;            /* light border */
+    --input: 216 15% 90%;
+    --ring: 24 95% 53%;               /* orange ring */
 
     --radius: 0.75rem;
 
-    --sidebar-background: 216 100% 15%;  /* #00204F */
-    --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 216 35% 60%;      /* #7191C2 */
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 216 80% 22%;       /* slightly lighter dark blue */
-    --sidebar-accent-foreground: 0 0% 100%;
-    --sidebar-border: 216 60% 25%;
-    --sidebar-ring: 216 35% 60%;
+    /* Orange CTA */
+    --cta: 24 95% 53%;                /* #F97316 */
+    --cta-foreground: 0 0% 100%;
 
-    /* Custom tokens */
+    /* Success/Warning */
     --success: 145 63% 42%;
     --warning: 38 92% 50%;
+
+    /* Sidebar — white background like reference */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 216 100% 15%;
+    --sidebar-primary: 24 95% 53%;       /* orange active */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 210 15% 95%;
+    --sidebar-accent-foreground: 216 100% 15%;
+    --sidebar-border: 216 15% 90%;
+    --sidebar-ring: 24 95% 53%;
+
+    /* Login background */
+    --login-bg: 220 30% 52%;          /* muted blue-gray */
   }
 
   .dark {
@@ -68,15 +76,18 @@
     --destructive-foreground: 210 40% 98%;
     --border: 217 32% 17%;
     --input: 217 32% 17%;
-    --ring: 216 35% 60%;
+    --ring: 24 95% 53%;
+    --cta: 24 95% 53%;
+    --cta-foreground: 0 0% 100%;
     --sidebar-background: 216 100% 8%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 216 35% 60%;
+    --sidebar-primary: 24 95% 53%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 216 60% 18%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 216 40% 20%;
-    --sidebar-ring: 216 35% 60%;
+    --sidebar-ring: 24 95% 53%;
+    --login-bg: 220 40% 20%;
   }
 }
 
@@ -95,19 +106,26 @@
   /* Bouncing dots loader */
   .loader-dots {
     display: flex;
-    gap: 4px;
+    gap: 6px;
     align-items: center;
   }
   .loader-dots span {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    background-color: hsl(var(--secondary));
+    background-color: hsl(var(--cta));
     animation: bounce-dot 1.4s infinite ease-in-out both;
   }
   .loader-dots span:nth-child(1) { animation-delay: -0.32s; }
   .loader-dots span:nth-child(2) { animation-delay: -0.16s; }
   .loader-dots span:nth-child(3) { animation-delay: 0s; }
+
+  /* Login background pattern */
+  .login-bg {
+    background-color: hsl(var(--login-bg));
+    background-image:
+      url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.06'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3Cpath d='M30 10L24 4l-2 2 6 6 6-6-2-2z'/%3E%3Cpath d='M12 28l-6 6 2 2 6-6-6-6-2 2z'/%3E%3Ccircle cx='48' cy='18' r='3'/%3E%3Crect x='14' y='46' width='6' height='6' rx='1'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  }
 }
 
 @keyframes bounce-dot {

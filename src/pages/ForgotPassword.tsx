@@ -4,9 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { GraduationCap, Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, X } from "lucide-react";
 
 export default function ForgotPassword() {
   const { toast } = useToast();
@@ -30,52 +29,55 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="text-center space-y-2">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-xl bg-primary">
-            <GraduationCap className="h-8 w-8 text-primary-foreground" />
+    <div className="login-bg flex min-h-screen items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="relative rounded-3xl bg-card p-8 shadow-2xl">
+          <Link to="/login" className="absolute right-4 top-4 rounded-full p-1 text-muted-foreground hover:bg-muted">
+            <X className="h-5 w-5" />
+          </Link>
+
+          <div className="mb-6 text-center">
+            <h2 className="text-2xl font-bold text-primary">Recuperar contraseña</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Ingresa tu correo y te enviaremos un email con los pasos a seguir.
+            </p>
           </div>
-          <CardTitle className="text-xl font-bold text-primary">Recuperar contraseña</CardTitle>
-        </CardHeader>
-        <CardContent>
+
           {sent ? (
-            <div className="text-center space-y-4">
+            <div className="space-y-4 text-center">
               <p className="text-muted-foreground">
                 Revisa tu email, te hemos enviado el enlace de recuperación.
               </p>
               <Link to="/login">
-                <Button variant="outline" className="gap-2">
-                  <ArrowLeft className="h-4 w-4" /> Volver al inicio de sesión
+                <Button className="h-12 w-full rounded-full bg-cta font-semibold text-cta-foreground hover:bg-cta/90">
+                  Volver al inicio de sesión
                 </Button>
               </Link>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="tu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
+                  className="h-12 rounded-full border-border bg-muted/50 px-5"
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                Enviar enlace de recuperación
+              <Button
+                type="submit"
+                disabled={loading}
+                className="h-12 w-full rounded-full bg-cta font-semibold text-cta-foreground hover:bg-cta/90"
+              >
+                {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : "Recuperar"}
               </Button>
-              <div className="text-center">
-                <Link to="/login" className="text-sm text-secondary hover:underline">
-                  Volver al inicio de sesión
-                </Link>
-              </div>
             </form>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
