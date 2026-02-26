@@ -1,6 +1,8 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { useLocation } from "react-router-dom";
+import { useTopBar } from "@/contexts/TopBarContext";
+import { ChevronLeft } from "lucide-react";
 
 const pageTitles: Record<string, string> = {
   "/dashboard": "Inicio",
@@ -15,6 +17,7 @@ const pageTitles: Record<string, string> = {
 export function TopBar() {
   const { profile } = useAuth();
   const location = useLocation();
+  const { backAction } = useTopBar();
 
   const pageTitle =
     Object.entries(pageTitles).find(([path]) =>
@@ -25,8 +28,17 @@ export function TopBar() {
 
   return (
     <header className="flex h-12 items-center justify-between border-b border-border bg-card px-4">
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2">
         <SidebarTrigger />
+        {backAction && (
+          <button
+            onClick={backAction.fn}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted"
+            title="Volver"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </button>
+        )}
         <span
           style={{
             fontFamily: "'Montserrat Alternates', sans-serif",

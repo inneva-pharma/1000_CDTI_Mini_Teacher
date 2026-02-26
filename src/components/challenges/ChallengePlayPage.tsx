@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTopBar } from "@/contexts/TopBarContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -30,7 +31,13 @@ type ResultsState = {
 
 export function ChallengePlayPage({ challengeId, onBack }: Props) {
   const { user } = useAuth();
+  const { setBackAction } = useTopBar();
   const [selectedAnswers, setSelectedAnswers] = useState<Record<number, number>>({});
+
+  useEffect(() => {
+    setBackAction(onBack);
+    return () => setBackAction(undefined);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const [page, setPage] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [results, setResults] = useState<ResultsState | null>(null);
@@ -125,18 +132,18 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
   // ── RESULTS VIEW ──
   if (results) {
     return (
-      <div className="fixed inset-0 z-40 flex flex-col bg-background">
+      <div className="flex flex-col flex-1 min-h-0 overflow-hidden font-museo">
 
         {/* Header */}
         <div className="shrink-0 bg-primary px-4 py-4 sm:px-6 sm:py-5">
-          <h1 className="truncate text-base font-extrabold text-primary-foreground sm:text-lg">
+          <h1 className="truncate font-montserrat text-lg font-extrabold text-primary-foreground sm:text-xl">
             Resultados: {challenge?.name}
           </h1>
           <div className="mt-2 flex flex-wrap gap-2">
-            <span className="rounded-full bg-primary-foreground/15 px-3 py-1 text-xs font-bold text-primary-foreground">
+            <span className="rounded-full bg-primary-foreground/15 px-3.5 py-1.5 text-sm font-bold text-primary-foreground">
               {results.correctAnswers}/{results.totalQuestions} correctas
             </span>
-            <span className="rounded-full bg-cta px-3 py-1 text-xs font-bold text-cta-foreground">
+            <span className="rounded-full bg-cta px-3.5 py-1.5 text-sm font-bold text-cta-foreground">
               {results.score}%
             </span>
           </div>
@@ -157,23 +164,23 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
                 {/* Question */}
                 <div className="mb-2 flex items-start gap-2">
                   <span
-                    className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${
+                    className={`mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
                       d.isCorrect ? "bg-green-500 text-white" : "bg-red-500 text-white"
                     }`}
                   >
                     {d.isCorrect
-                      ? <Check className="h-3 w-3" />
-                      : <X className="h-3 w-3" />}
+                      ? <Check className="h-3.5 w-3.5" />
+                      : <X className="h-3.5 w-3.5" />}
                   </span>
-                  <p className="text-sm font-medium leading-snug text-foreground sm:text-base">
+                  <p className="text-base font-medium leading-snug text-foreground sm:text-lg">
                     {d.question.question}
                   </p>
                 </div>
 
                 {/* Explanation — justo debajo de la pregunta */}
                 {d.question.explanation && (
-                  <div className="mb-3 ml-7 rounded-xl bg-primary/10 px-3 py-2">
-                    <p className="text-xs leading-relaxed text-foreground/80">
+                  <div className="mb-3 ml-8 rounded-xl bg-primary/10 px-3 py-2">
+                    <p className="text-sm leading-relaxed text-foreground/80">
                       {d.question.explanation}
                     </p>
                   </div>
@@ -188,7 +195,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
                       return (
                         <div
                           key={optIdx}
-                          className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs ${
+                          className={`flex items-center gap-2 rounded-full px-3 py-2 text-sm ${
                             isCorrectAnswer
                               ? "bg-green-500 font-semibold text-white"
                               : isSelectedWrong
@@ -196,7 +203,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
                               : "bg-muted/60 text-muted-foreground"
                           }`}
                         >
-                          <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold">
+                          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs font-bold">
                             {OPTION_LABELS[optIdx]}
                           </span>
                           <span className="leading-tight">{opt}</span>
@@ -215,7 +222,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
         <div className="shrink-0 border-t border-border bg-card px-4 py-3 sm:px-6">
           <Button
             onClick={onBack}
-            className="w-full rounded-full font-semibold sm:w-auto sm:min-w-[160px]"
+            className="w-full rounded-full text-sm font-semibold sm:w-auto sm:min-w-[160px] sm:text-base"
           >
             Volver a retos
           </Button>
@@ -226,25 +233,17 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
 
   // ── PLAY VIEW ──
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-background">
+    <div className="flex flex-col flex-1 min-h-0 overflow-hidden font-museo">
 
       {/* Header */}
       <div className="shrink-0 bg-primary px-4 py-4 sm:px-6 sm:py-5">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <h1 className="truncate text-base font-extrabold text-primary-foreground sm:text-lg">
-              {isLoading ? "Cargando..." : challenge?.name ?? ""}
-            </h1>
-            <p className="mt-0.5 text-xs text-primary-foreground/60">
-              {answeredCount} de {questions.length} respondidas
-            </p>
-          </div>
-          <button
-            onClick={onBack}
-            className="shrink-0 rounded-full bg-primary-foreground/10 px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary-foreground/20"
-          >
-            Salir
-          </button>
+        <div className="min-w-0">
+          <h1 className="truncate font-montserrat text-lg font-extrabold text-primary-foreground sm:text-xl">
+            {isLoading ? "Cargando..." : challenge?.name ?? ""}
+          </h1>
+          <p className="mt-0.5 text-sm text-primary-foreground/60">
+            {answeredCount} de {questions.length} respondidas
+          </p>
         </div>
       </div>
 
@@ -259,10 +258,10 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
                 key={q.id}
                 className="rounded-2xl border border-border bg-card p-4 shadow-sm sm:p-5"
               >
-                <span className="text-xs font-semibold text-primary">
+                <span className="text-sm font-semibold text-primary">
                   Pregunta {globalIdx + 1}
                 </span>
-                <p className="mb-3 mt-1.5 text-sm font-medium leading-snug text-foreground sm:text-base">
+                <p className="mb-3 mt-1.5 text-base font-medium leading-snug text-foreground sm:text-lg">
                   {q.question}
                 </p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -273,14 +272,14 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
                       onClick={() =>
                         setSelectedAnswers((prev) => ({ ...prev, [globalIdx]: optIdx }))
                       }
-                      className={`flex items-center gap-2 rounded-full px-3 py-2 text-left text-sm transition-all ${
+                      className={`flex items-center gap-2 rounded-full px-3 py-2.5 text-left text-base transition-all ${
                         selected === optIdx
                           ? "bg-primary font-semibold text-primary-foreground shadow-md"
                           : "bg-muted/60 text-muted-foreground hover:bg-muted"
                       }`}
                     >
                       <span
-                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                        className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
                           selected === optIdx
                             ? "bg-primary-foreground/20 text-primary-foreground"
                             : "bg-background/60 text-foreground"
@@ -334,7 +333,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
       {/* Footer — Enviar */}
       <div className="shrink-0 border-t border-border bg-card px-4 py-3 sm:px-6">
         <div className="flex items-center justify-between gap-3">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-sm text-muted-foreground">
             {answeredCount < questions.length
               ? `Faltan ${questions.length - answeredCount} preguntas sin responder`
               : "¡Todas respondidas!"}
@@ -342,7 +341,7 @@ export function ChallengePlayPage({ challengeId, onBack }: Props) {
           <Button
             onClick={handleSubmit}
             disabled={submitting || questions.length === 0}
-            className="rounded-full border-2 border-cta bg-cta text-xs font-bold text-cta-foreground shadow-md hover:bg-cta/90 sm:min-w-[120px] sm:text-sm"
+            className="rounded-full border-2 border-cta bg-cta text-sm font-bold text-cta-foreground shadow-md hover:bg-cta/90 sm:min-w-[130px] sm:text-base"
           >
             {submitting ? "Enviando..." : "Enviar"}
           </Button>

@@ -411,7 +411,7 @@ export function CreateChallengeDialog({ open, onOpenChange, onGenerated, default
                 )}
 
                 {/* Row 3 */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_1fr] sm:items-end sm:gap-4">
                   <div className="space-y-1">
                     <Label className="text-xs font-bold text-primary sm:text-sm">Número de preguntas</Label>
                     <Input type="number" min={1} max={50} value={questionCount}
@@ -420,16 +420,16 @@ export function CreateChallengeDialog({ open, onOpenChange, onGenerated, default
                   </div>
                   <div className="space-y-1">
                     <Label className="text-xs font-bold text-primary sm:text-sm">Dificultad</Label>
-                    <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                    <div className="grid grid-cols-4 gap-1.5">
                       {DIFFICULTIES.map((d) => (
                         <button key={d.value} type="button" onClick={() => setDifficulty(d.value)}
-                          className={`flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-xs transition-all duration-200 sm:gap-1.5 sm:px-3.5 sm:py-2 sm:text-sm ${
+                          className={`flex items-center justify-center gap-1.5 rounded-full border py-2 text-xs transition-all duration-200 sm:py-2.5 sm:text-sm ${
                             difficulty === d.value
                               ? "border-primary bg-primary/10 font-bold text-primary shadow-sm"
                               : "border-transparent bg-muted/50 text-muted-foreground hover:bg-muted"
                           }`}>
                           {d.value}
-                          <span className={`h-3 w-3 rounded-full ${d.color} shadow-sm sm:h-3.5 sm:w-3.5`} />
+                          <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${d.color} shadow-sm`} />
                         </button>
                       ))}
                     </div>

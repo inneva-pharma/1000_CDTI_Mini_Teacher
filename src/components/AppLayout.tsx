@@ -2,6 +2,7 @@ import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { TopBar } from "@/components/TopBar";
 import { MobileNav } from "@/components/MobileNav";
+import { TopBarProvider } from "@/contexts/TopBarContext";
 import { useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 
@@ -17,11 +18,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider>
+      <TopBarProvider>
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <div className="flex flex-1 flex-col">
           <TopBar />
-          <main className="flex flex-1 flex-col overflow-auto pb-20 md:pb-6"
+          <main className="relative flex flex-1 flex-col overflow-auto pb-20 md:pb-6"
             style={{ padding: "clamp(12px, 2.5vw, 24px)" }}>
             <div
               className={`flex w-full min-w-0 flex-1 flex-col transition-all duration-300 ease-out ${
@@ -36,6 +38,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
       </div>
       <MobileNav />
+      </TopBarProvider>
     </SidebarProvider>
   );
 }

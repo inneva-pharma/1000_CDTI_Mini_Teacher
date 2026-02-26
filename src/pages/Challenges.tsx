@@ -23,6 +23,8 @@ export default function Challenges() {
   const [review, setReview] = useState<ReviewState | null>(null);
   const [playChallenge, setPlayChallenge] = useState<number | null>(null);
   const [defaultValues, setDefaultValues] = useState<Partial<ChallengeFormSnapshot> | undefined>(undefined);
+  const [idInput, setIdInput] = useState("");
+  const [searchingId, setSearchingId] = useState(false);
 
   const { data: myChallenges = [], refetch } = useQuery({
     queryKey: ["my-challenges", user?.id],
@@ -57,9 +59,47 @@ export default function Challenges() {
     },
   });
 
+  const handleIdSearch = async () => {
+    const id = parseInt(idInput.trim());
+    if (!id || isNaN(id)) {
+      toast.error("Introduce un ID válido");
+      return;
+    }
+    setSearchingId(true);
+    try {
+      const { data, error } = await supabase
+        .from("challenges")
+        .select("id")
+        .eq("id", id)
+        .eq("isDeleted", false)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) {
+        setIdInput("");
+        setPlayChallenge(data.id);
+      } else {
+        toast.error(`No existe ningún reto con el ID ${id}`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Error al buscar el reto");
+    } finally {
+      setSearchingId(false);
+    }
+  };
+
   const openCreate = () => {
     setDefaultValues(undefined);
     setCreateOpen(true);
+  };
+
+  const handleDelete = async (challengeId: number) => {
+    const { error } = await supabase
+      .from("challenges")
+      .update({ isDeleted: true })
+      .eq("id", challengeId);
+    if (error) { toast.error("Error al borrar el reto"); return; }
+    toast.success("Reto borrado");
+    refetch();
   };
 
   const handleEdit = async (challengeId: number) => {
@@ -111,28 +151,32 @@ export default function Challenges() {
 
   if (review) {
     return (
-      <ChallengeReviewPage
-        questions={review.questions}
-        form={review.form}
-        challengeId={review.challengeId}
-        onSaved={() => { setReview(null); refetch(); }}
-        onDiscard={() => setReview(null)}
-        onRegenerate={() => {
-          const form = review.form;
-          setReview(null);
-          setDefaultValues(form);
-          setCreateOpen(true);
-        }}
-      />
+      <div className="absolute inset-0 z-10 flex flex-col overflow-hidden pb-20 md:pb-0">
+        <ChallengeReviewPage
+          questions={review.questions}
+          form={review.form}
+          challengeId={review.challengeId}
+          onSaved={() => { setReview(null); refetch(); }}
+          onDiscard={() => setReview(null)}
+          onRegenerate={() => {
+            const form = review.form;
+            setReview(null);
+            setDefaultValues(form);
+            setCreateOpen(true);
+          }}
+        />
+      </div>
     );
   }
 
   if (playChallenge !== null) {
     return (
-      <ChallengePlayPage
-        challengeId={playChallenge}
-        onBack={() => setPlayChallenge(null)}
-      />
+      <div className="absolute inset-0 z-10 flex flex-col overflow-hidden pb-20 md:pb-0">
+        <ChallengePlayPage
+          challengeId={playChallenge}
+          onBack={() => setPlayChallenge(null)}
+        />
+      </div>
     );
   }
 
@@ -252,12 +296,21 @@ export default function Challenges() {
             </p>
           </div>
           <input
-            type="text"
+            type="number"
+            min={1}
+            value={idInput}
+            onChange={(e) => setIdInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleIdSearch()}
             placeholder="#"
             className="w-full rounded-full border border-input bg-muted/50 px-3 py-2 text-center text-sm outline-none transition-all focus:ring-2 focus:ring-cta"
           />
-          <Button size="sm" className="w-full rounded-full bg-cta text-sm font-semibold text-cta-foreground hover:bg-cta/90">
-            Aceptar
+          <Button
+            size="sm"
+            onClick={handleIdSearch}
+            disabled={searchingId || !idInput.trim()}
+            className="w-full rounded-full bg-cta text-sm font-semibold text-cta-foreground hover:bg-cta/90 disabled:opacity-60"
+          >
+            {searchingId ? "Buscando..." : "Aceptar"}
           </Button>
         </div>
 
@@ -300,6 +353,7 @@ export default function Challenges() {
                     challenge={ch}
                     onEdit={handleEdit}
                     onPlay={(id) => setPlayChallenge(id)}
+                    onDelete={handleDelete}
                   />
                 </div>
               ))}
